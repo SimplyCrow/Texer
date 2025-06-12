@@ -1,0 +1,47 @@
+# === Linux Kernel–style .clang-format ===
+
+BasedOnStyle: LLVM
+
+# 1) Tabs & indentation
+IndentWidth: 8                 # each indent level = one tab = 8 columns
+TabWidth: 8
+UseTab: ForIndentation         # use tabs for indent; spaces only for alignment
+IndentPPDirectives: None       # preprocessor directives remain at column 1
+ContinuationIndentWidth: 8     # wrapped lines indent by one full tab
+
+# 2) Switch/case alignment
+IndentCaseLabels: false        # flush ‘case’ labels with ‘switch’ (no extra indent)
+
+# 3) Brace placement
+BreakBeforeBraces: Linux       # functions’ “{” on next line; other blocks on the same line
+
+# 4) Binary‐operator wrapping
+#    Valid values are: None, NonAssignment, All
+BreakBeforeBinaryOperators: NonAssignment
+
+# 5) No multiple statements on one line
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: false
+
+# 6) Spaces around parentheses & control keywords
+SpaceBeforeParens: ControlStatements   # “if (cond)”, “for (…)”; no space in “func(…)”
+SpacesInParentheses: false             # never “( expr )”
+
+# 7) Pointer‐binding
+PointerAlignment: Right        # “char *ptr;”
+
+# 8) Function‐argument packing
+BinPackParameters: false       # if too long, put each parameter on its own line
+BinPackArguments: false
+
+# 9) Comment handling
+ReflowComments: false          # do not re‐wrap or re‐flow comments
+AlignTrailingComments: false   # do not auto‐align “/* … */” comments
+SpacesBeforeTrailingComments: 2  # exactly two spaces before an end‐of‐line /* comment */
+
+# 10) Line length
+ColumnLimit: 80                # max 80 columns
+
+# 11) Blank lines
+MaxEmptyLinesToKeep: 1         # no more than one consecutive blank line
