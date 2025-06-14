@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.31)
 project(tex_tests C)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_C_STANDARD 99)
 set(LIB_PATH "../thirdparty")
 set(MUNIT_PATH "${LIB_PATH}/munit")

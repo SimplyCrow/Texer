@@ -26,8 +26,8 @@ int main(int argc, char **argv)
 	SDL_Window* window = SDL_CreateWindow("Image", 600, 800, 0);
 	SDL_Renderer* renderer = SDL_CreateRenderer(window, 0);
 
-	struct SDLImageInfos image = load_surface("test.jpg");
-	struct SDLImageInfos image_demo = load_surface("demo.png");
+	struct SDLImageInfos image = load_surface("demo1.png");
+	struct SDLImageInfos image_demo = load_surface("demo2.png");
 	SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, image.surface);
 	SDL_Texture* texture_1 = SDL_CreateTextureFromSurface(renderer, image_demo.surface);
 

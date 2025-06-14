@@ -1,10 +1,11 @@
-#include "tex/load.h"
+#include "load.h"
+#include <tex/error.h>
 
 #include <SDL3/SDL.h>
-#include <ctype.h>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
+#include "types.h"
 
 struct FileInfos
 {
@@ -24,39 +25,8 @@ struct ImageInfos
 
 const struct ImageInfos invalid_image_infos = {-1, -1, -1, NULL};
 
-
-
-void hex_dump_file(const struct FileInfos infos)
-{
-	const size_t rows = infos.file_size / 16 + 1;
-	const size_t elements_in_last_row = infos.file_size % 16;
-	const size_t max_rows = 1000000;
-	for (int i = 0; i < rows && i < max_rows; ++i) {
-		size_t cols = 16;
-		if (i == rows - 1)
-			cols = elements_in_last_row;
-
-		printf("0x%08x: ", 16 * i);
-		for (int j = 0; j < cols; ++j) {
-			printf("0x%02x ", infos.data[16 * i + j]);
-		}
-
-		for (int j = 0; j < 16 - cols; ++j) {
-			printf("     ");
-		}
-
-		for (int j = 0; j < cols; ++j) {
-			printf("%c",
-			       isprint(infos.data[16 * i + j])
-				       ? (char)infos.data[16 * i + j]
-				       : '.');
-		}
-
-		printf("\n");
-	}
-}
-
-SDL_PixelFormat get_pixel_format_from_stbi(int stbi_code)
+// stbi pixel format to sdl
+SDL_PixelFormat TEX_STBIPixelFormat(int stbi_code)
 {
 	switch (stbi_code) {
 	default:
@@ -71,7 +41,8 @@ SDL_PixelFormat get_pixel_format_from_stbi(int stbi_code)
 	}
 }
 
-int get_number_of_bytes_per_pixel_stbi(int stbi_code)
+// number of bytes per pixel from stbi
+int TEX_NumberOfBytes(int stbi_code)
 {
 	switch (stbi_code) {
 	default:
@@ -86,54 +57,50 @@ int get_number_of_bytes_per_pixel_stbi(int stbi_code)
 	}
 }
 
-bool open_file(const char *path, struct FileInfos *infos)
+int TEX_OpenFile(const char *path, struct FileInfos *infos)
 {
 	infos->data = (uint8_t *)SDL_LoadFile(path, &infos->file_size);
 	if (infos->data == NULL)
+        {
+                TEX_RaiseErrorSDL(TEX_SDL_NO_FILE);                
 		return false;
+        }
 	return true;
 }
 
-struct ImageInfos load_image(const char *path)
+int TEX_LoadImage(const char *path, struct ImageInfos* image_infos)
 {
 	struct FileInfos file_info;
-	if (!open_file(path, &file_info)) {
-		SDL_Log("ERROR: Tried to load image: %s", SDL_GetError());
-		return invalid_image_infos;
+	if (!TEX_OpenFile(path, &file_info)) {
+		return false;
 	}
 
-	struct ImageInfos image_infos;
-	image_infos.data = stbi_load_from_memory(file_info.data,
+	image_infos->data = stbi_load_from_memory(file_info.data,
 	                                         (int)file_info.file_size,
-	                                         &image_infos.width,
-	                                         &image_infos.height,
-	                                         &image_infos.color_channel,
+	                                         &image_infos->width,
+	                                         &image_infos->height,
+	                                         &image_infos->color_channel,
 	                                         STBI_default);
-	return image_infos;
+        if(image_infos->data == NULL)  {
+                TEX_RaiseErrorDetailed(TEX_STBI, stbi_failure_reason());
+                return false;
+        }
+
+	return true;
 }
 
-struct SDLImageInfos load_surface(const char *path)
+int TEX_LoadSurface(    const struct ImageInfos image_infos,
+                        struct SDL_Surface *surface)
 {
-	struct SDLImageInfos surface_infos;
-	const struct ImageInfos image_infos = load_image(path);
-
-	if (image_infos.data == NULL) {
-
-	SDL_Log("ERROR: Tried to load image from memory: %s",
-		stbi_failure_reason());
-		return invalid_sdl_image_infos;
-	}
-
-	surface_infos.width = image_infos.width;
-	surface_infos.height = image_infos.height;
-
-	const int pixel_format = get_pixel_format_from_stbi(
-		image_infos.color_channel);
-	const int byte_per_pixel = get_number_of_bytes_per_pixel_stbi(
-		image_infos.color_channel);
+        
+	const int pixel_format = 
+                TEX_STBIPixelFormat(image_infos.color_channel);
+	const int byte_per_pixel = 
+		TEX_NumberOfBytes(image_infos.color_channel);
+        
 	const int pitch = byte_per_pixel * image_infos.width;
 
-	surface_infos.surface = SDL_CreateSurfaceFrom(
+	surface = SDL_CreateSurfaceFrom(
 		image_infos.width,
 		image_infos.height,
 		pixel_format,
@@ -141,12 +108,58 @@ struct SDLImageInfos load_surface(const char *path)
 		pitch
 		);
 
-	if (surface_infos.surface == NULL) {
-
-		SDL_Log("ERROR: Tried to create surface: %s",
-			SDL_GetError());
-		return invalid_sdl_image_infos;
+	if (surface == NULL) {
+                TEX_RaiseErrorSDL(TEX_SDL_SURFACE);
+		return false;
 	}
 
-	return surface_infos;
+	return true;
 }
+
+int TEX_LoadTexture(    const struct ImageInfos image_infos,
+                        struct SDL_Surface *surface,
+                        struct SDL_Renderer *renderer,
+                        struct SDL_Texture *texture)
+{
+        
+	const int pixel_format = 
+                TEX_STBIPixelFormat(image_infos.color_channel);
+	const int byte_per_pixel = 
+		TEX_NumberOfBytes(image_infos.color_channel);
+        
+	const int pitch = byte_per_pixel * image_infos.width;
+
+	texture = SDL_CreateTextureFromSurface(renderer, surface);
+
+	if (texture == NULL) {
+                TEX_RaiseErrorSDL(TEX_SDL_TEXTURE);
+		return false;
+	}
+
+	return true;
+}
+
+int TEX_LoadTextureFromMemory(          const char* path, 
+                                        struct SDL_Renderer* renderer,
+                                        struct TEX_TextureItem* item)
+{
+        struct ImageInfos image_infos;
+        if(!TEX_LoadImage(path, &image_infos))
+            return false;    
+
+        struct SDL_Surface *surface;
+        if(!TEX_LoadSurface(image_infos, surface))
+                return false;
+        
+        struct SDL_Texture *texture;
+        if(!TEX_LoadTexture(image_infos, surface, renderer, texture))
+                return false;
+
+        item->path = path;
+        item->width = image_infos.width;
+        item->height = image_infos.height;
+        item->surface = surface;
+        item->texture = texture;
+        item->ref_count = 1;
+}
+
