@@ -1,0 +1,19 @@
+    +-----------------------------+
+    |   Texer (Texture Manager)   |
+    +-----------------------------+
+
+ - Load a texture
+ - Get a texture
+ - Unload a texture after unreferenced
+    - Different lifetime polices
+    - Hot reload if needed
+ - Remove a texture
+ - namespaces for textures
+    - like ui, enemies
+    - groups that can be passed around as
+      separate texture manager to reduce scope
+ - extensive logging of loaded files and there states
+ - dummy texture
+    - dummy texture (maybe black) when not fully loaded
+    - buffer swap if loaded
+ - async loading/managing
